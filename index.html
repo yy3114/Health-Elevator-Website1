@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泌尿系統電梯</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3182CE;
+            --bg-color: #EBF8FF;
+            --text-color: #2D3748;
+            --green-accent: #22C55E;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color)
+                repeating-linear-gradient(0deg, transparent 0 19px, rgba(0, 0, 0, 0.05) 20px),
+                repeating-linear-gradient(90deg, transparent 0 19px, rgba(0, 0, 0, 0.05) 20px);
+            background-size: 20px 20px;
+            color: var(--text-color);
+            overflow-y: hidden;
+            position: relative;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body::-webkit-scrollbar { display: none; }
+
+        .medical-symbols-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        .flex-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+
+        .elevator-container {
+            width: 25%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .elevator-track {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--primary-color);
+        }
+
+        .elevator-cabin {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 100px;
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            background-color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s linear;
+            will-change: transform;
+            z-index: 20;
+        }
+
+        .floor-display {
+            position: absolute;
+            top: -30px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 4px 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .scroll-container {
+            width: 75%;
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-behavior: smooth;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        .scroll-container.visible {
+            opacity: 1;
+        }
+        .scroll-container::-webkit-scrollbar { display: none; }
+
+        .stage-content {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+            opacity: 0.2;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .stage-content.active { opacity: 1; }
+
+        .stage-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            letter-spacing: -2px;
+        }
+
+        .info-box {
+            max-width: 100%;
+            padding: 1rem 2.5rem;
+            margin: 0 auto;
+            min-height: 100px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .title-container {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            text-align: center;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .bg-title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+            z-index: -3;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .elevator-container { width: 40%; }
+            .scroll-container { width: 60%; }
+            .stage-title { font-size: 2.5rem; }
+            .info-box { padding: 1rem 1.5rem; }
+            .title-container h1 { font-size: 4rem; }
+            .title-container p { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="medical-symbols-bg"></canvas>
+    <div class="flex-container">
+        <div class="elevator-container">
+            <div class="elevator-track"></div>
+            <div id="elevator-cabin" class="elevator-cabin">
+                <span id="floor-display" class="floor-display" aria-live="polite">1 歲</span>
+                <span class="elevator-person text-3xl">🧑</span>
+            </div>
+        </div>
+        <div id="scroll-container" class="scroll-container"></div>
+    </div>
+    <div id="title-container" class="title-container">
+        <h1 class="text-6xl md:text-8xl font-extrabold text-blue-600 animate-pulse">HEALTH ELEVATOR <span class="text-gray-400">🛗</span></h1>
+        <p class="mt-8 text-2xl md:text-3xl font-semibold text-gray-500 animate-bounce">⬆️Scroll Up⬆️</p>
+        <div class="bg-title">HEALTH ELEVATOR</div>
+    </div>
+
+    <script>
+        const stagesData = [
+            { age: "天堂", description: "恭喜！您已完成這趟健康電梯之旅。<br><br>願您健康長壽，永保活力。", titleClass: "text-green-500", boxClass: "border-2 border-green-500", height: "h-[150vh]" },
+            { age: "71-80 歲", description: "此階段的泌尿系統功能普遍較弱。膀胱可能無法完全排空，增加細菌滋生的機會。夜間起床排尿成為常態。維持適當的水分和注意衛生變得尤為重要。" },
+            { age: "61-70 歲", description: "腎功能衰退更加明顯，可能增加慢性腎病的風險。膀胱括約肌力量減弱，使得尿失禁問題變得更普遍。泌尿道感染的發生率也因抵抗力下降而增高。" },
+            { age: "51-60 歲", description: "腎臟的過濾率持續下降，但通常仍足以維持身體運作。膀胱的彈性和容量進一步減少，導致頻尿和急尿感。漏尿（尿失禁）的風險增加。" },
+            { age: "41-50 歲", description: "對男性來說，攝護腺（前列腺）可能會開始變大，影響排尿。對女性而言，更年期荷爾蒙的變化可能導致膀胱控制力減弱。夜間排尿的頻率可能會增加。" },
+            { age: "31-40 歲", description: "腎功能開始出現非常輕微的自然衰退，但通常不會對日常生活造成影響。體內的變化可能讓部分人群開始面臨結石或泌尿道感染的風險。" },
+            { age: "21-30 歲", description: "泌尿系統的功能處於人生中的黃金時期。腎臟的過濾效率最高，膀胱的容量和彈性俱佳。這通常是泌尿系統問題最少的十年。" },
+            { age: "11-20 歲", description: "泌尿系統在此階段基本發育完成，並達到成人大小和功能。腎臟處於最佳狀態，能高效過濾血液中的廢物並維持體液平衡。膀胱肌肉強健，排尿控制良好。" },
+            { age: "1-10 歲", description: "泌尿系統正處於快速發育階段。膀胱小而有彈性，但容量有限。這段時間，兒童的大腦正在學習控制膀胱，這是一個重要的里程碑。腎臟功能健全，但仍在持續成長以適應身體需求。" }
+        ];
+
+        const Elevator = {
+            init() {
+                this.cabin = document.getElementById('elevator-cabin');
+                this.display = document.getElementById('floor-display');
+                this.scrollContainer = document.getElementById('scroll-container');
+                this.titleContainer = document.getElementById('title-container');
+                if (!this.cabin || !this.display || !this.scrollContainer) {
+                    console.error('Required DOM elements are missing');
+                    return false;
+                }
+                this.display.textContent = "1 歲";
+                return true;
+            },
+            updatePosition(scrollProgress, clientHeight) {
+                const maxCabinMove = clientHeight - this.cabin.offsetHeight - 50;
+                this.cabin.style.transform = `translateY(-${maxCabinMove * (1 - scrollProgress)}px) translateX(-50%)`;
+            },
+            updateFloor(scrollProgress) {
+                const currentAge = Math.round((1 - scrollProgress) * 80) + 1;
+                this.display.textContent = currentAge > 80 ? "天堂" : `${Math.max(1, currentAge)} 歲`;
+                console.log(`scrollProgress: ${scrollProgress}, currentAge: ${currentAge}`);
+            }
+        };
+
+        const Background = {
+            init() {
+                this.canvas = document.querySelector('.medical-symbols-bg');
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.ctx = this.canvas.getContext('2d');
+                this.symbols = ['🧬', '🧪', '🔬', '🩺', '💊', '🩻', '🩸', '🦠'];
+            },
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                for (let i = 0; i < 50; i++) {
+                    this.ctx.font = '4rem Inter';
+                    this.ctx.fillStyle = 'rgba(49, 130, 206, 0.1)';
+                    this.ctx.save();
+                    this.ctx.translate(Math.random() * this.canvas.width, Math.random() * this.canvas.height);
+                    this.ctx.rotate(Math.random() * 2 * Math.PI);
+                    this.ctx.fillText(this.symbols[Math.floor(Math.random() * this.symbols.length)], 0, 0);
+                    this.ctx.restore();
+                }
+            },
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.draw();
+            }
+        };
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function init() {
+            if (!Elevator.init()) return;
+
+            // 動態生成內容
+            stagesData.forEach(stage => {
+                const stageDiv = document.createElement('section');
+                stageDiv.className = `stage-content ${stage.height || ''}`;
+                stageDiv.dataset.ageLabel = stage.age;
+                stageDiv.innerHTML = `
+                    <h2 class="stage-title ${stage.titleClass || ''}">${stage.age === '天堂' ? '✨ 天堂 ✨' : stage.age}</h2>
+                    <div class="info-box ${stage.boxClass || ''}">
+                        <p class="text-lg text-gray-700">${stage.description}</p>
+                    </div>
+                `;
+                Elevator.scrollContainer.appendChild(stageDiv);
+            });
+
+            // 初始化背景
+            Background.init();
+            Background.draw();
+
+            // 自動滾動
+            let autoScrolling = false;
+            const scrollSpeed = 2;
+            let animationFrameId = null;
+
+            const autoScroll = () => {
+                if (!autoScrolling || Elevator.scrollContainer.scrollTop <= 0) {
+                    autoScrolling = false;
+                    cancelAnimationFrame(animationFrameId);
+                    Elevator.display.textContent = "天堂";
+                    return;
+                }
+                Elevator.scrollContainer.scrollTop -= scrollSpeed;
+                animationFrameId = requestAnimationFrame(autoScroll);
+            };
+
+            // 滾動事件
+            Elevator.scrollContainer.addEventListener('scroll', debounce(() => {
+                const scrollTop = Elevator.scrollContainer.scrollTop;
+                const scrollHeight = Elevator.scrollContainer.scrollHeight;
+                const clientHeight = Elevator.scrollContainer.clientHeight;
+                const scrollProgress = Math.min(1, Math.max(0, scrollTop / (scrollHeight - clientHeight)));
+                Elevator.updatePosition(scrollProgress, clientHeight);
+                Elevator.updateFloor(scrollProgress);
+                const viewportCenter = window.innerHeight / 2;
+                document.querySelectorAll('.stage-content').forEach(stage => {
+                    const rect = stage.getBoundingClientRect();
+                    const stageCenter = rect.top + rect.height / 2;
+                    const distanceToCenter = Math.abs(stageCenter - viewportCenter);
+                    stage.style.opacity = Math.max(0.2, 1 - distanceToCenter / (viewportCenter * 1.5));
+                    stage.classList.toggle('active', distanceToCenter < viewportCenter * 0.5);
+                });
+            }, 16));
+
+            // 停止自動滾動
+            const stopAutoScroll = () => {
+                autoScrolling = false;
+                cancelAnimationFrame(animationFrameId);
+            };
+            Elevator.scrollContainer.addEventListener('wheel', stopAutoScroll, { passive: true });
+            Elevator.scrollContainer.addEventListener('touchmove', stopAutoScroll, { passive: true });
+            Elevator.scrollContainer.addEventListener('touchstart', stopAutoScroll, { passive: true });
+
+            // 視窗大小變化
+            window.addEventListener('resize', () => {
+                Background.resize();
+                Elevator.scrollContainer.scrollTop = Elevator.scrollContainer.scrollHeight - Elevator.scrollContainer.clientHeight;
+                Elevator.display.textContent = "1 歲";
+                Elevator.updateFloor(1);
+            });
+
+            // 初始化滾動位置
+            setTimeout(() => {
+                Elevator.scrollContainer.scrollTop = Elevator.scrollContainer.scrollHeight - Elevator.scrollContainer.clientHeight;
+                Elevator.display.textContent = "1 歲";
+                Elevator.updateFloor(1);
+            }, 0);
+
+            // 標題動畫與內容顯示
+            setTimeout(() => {
+                Elevator.titleContainer.style.opacity = 0.5;
+                setTimeout(() => {
+                    Elevator.titleContainer.style.opacity = 0;
+                    Elevator.scrollContainer.classList.add('visible');
+                    document.querySelector('.bg-title').style.opacity = 0.1;
+                    autoScrolling = true;
+                    animationFrameId = requestAnimationFrame(autoScroll);
+                }, 1000);
+            }, 2000);
+
+            // 清理事件
+            window.addEventListener('unload', () => {
+                Elevator.scrollContainer.removeEventListener('wheel', stopAutoScroll);
+                Elevator.scrollContainer.removeEventListener('touchmove', stopAutoScroll);
+                Elevator.scrollContainer.removeEventListener('touchstart', stopAutoScroll);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
